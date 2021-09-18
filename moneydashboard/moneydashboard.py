@@ -160,8 +160,23 @@ class MoneyDashboard:
                 accounts[account["Id"]] = account
             return accounts
 
-    def _get_transactions(self, type: int):
-        """Retrieve transactions from MoneyDashboard account"""
+    def _get_transactions(self, url, headers):
+        try:
+            response = self._get_session().request("GET", url, headers=headers)
+            response.raise_for_status()
+        except HTTPError as http_err:
+            self.__logger.error(
+                "[HTTP Error]: GET failed (%s) for url: %s", http_err, url
+            )
+            raise GetTransactionListFailedException from http_err
+        except Exception as err:
+            self.__logger.error("[Error]: GET failed (%s) for url: %s", err, url)
+            raise GetTransactionListFailedException from err
+        else:
+            return response.json()
+
+    def _get_widget_transactions(self, type: int):
+        """Retrieve transactions from MoneyDashboard widget"""
         if type not in self._transactionFilterTypes:
             self.__logger.error("Invalid Transaction Filter.")
             raise InvalidTransactionListTypeFilter
@@ -177,19 +192,7 @@ class MoneyDashboard:
         )
 
         headers = self._get_headers()
-        try:
-            response = self._get_session().request("GET", url, headers=headers)
-            response.raise_for_status()
-        except HTTPError as http_err:
-            self.__logger.error(
-                "[HTTP Error]: Failed to get Transaction List (%s)", http_err
-            )
-            raise GetTransactionListFailedException from http_err
-        except Exception as err:
-            self.__logger.error("[Error]: Failed to get Transaction List (%s)", err)
-            raise GetTransactionListFailedException from err
-        else:
-            return response.json()
+        return self._get_transactions(url, headers)
 
     def _money_fmt(self, balance):
         return (
@@ -281,7 +284,7 @@ class MoneyDashboard:
         return json.dumps(balance)
 
     def get_transactions(self, type):
-        transactions = self._get_transactions(type)
+        transactions = self._get_widget_transactions(type)
 
         transaction_list = []
         for transaction in transactions:
