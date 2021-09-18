@@ -194,6 +194,18 @@ class MoneyDashboard:
         headers = self._get_headers()
         return self._get_transactions(url, headers)
 
+    def get_raw_transactions(self, count: int = 65535):
+        """Retrieve `count` transactions in MoneyDashboard json format"""
+        self.__logger.info("Getting Raw Transactions...")
+        self._login()
+
+        url = (
+            f"https://my.moneydashboard.com/transaction/GetTransactions?limitTo={count}"
+        )
+
+        headers = self._get_headers()
+        return self._get_transactions(url, headers)
+
     def _money_fmt(self, balance):
         return (
             format_currency(Decimal(balance), self._currency, locale="en_GB")
